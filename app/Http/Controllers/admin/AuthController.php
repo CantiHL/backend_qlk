@@ -41,7 +41,7 @@ class AuthController extends Controller
             'username.required' => 'This field is required.',
             'password.required' => 'This field is required.',
         ]);
-        $user = User::where('username', $request->username)->first();;
+        $user = User::where('username', $request->username)->select('id','username', 'fullname', 'email','email_verified_at')->first();
 
         if (auth()->attempt($request->only('username', 'password'))) {
             $token = $user->createToken('authToken')->plainTextToken;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\admin;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Products;
+use App\Models\Purchase;
 use App\Models\Purchase_item;
 use App\Models\Sales;
 use App\Models\Sales_item;
@@ -131,10 +132,17 @@ class SalesController extends Controller
         $staff = Staff::select('id', 'fullname')->get();
         $customers = Customer::select('id', 'fullname', 'address')->get();
         $warehouses = Warehouse::select('id', 'fullname')->get();
-        $maxPurchaseId = Purchase_item::max('purchases_id');
-        $itemsWithMaxPurchaseId = Purchase_item::where('purchases_id', $maxPurchaseId)->get();
-        $productIds = $itemsWithMaxPurchaseId->pluck('product_id')->all();
-        $products = Products::whereIn('id', $productIds)->get();
+        $purchases_id = DB::table('purchases')
+            ->where('warehouse_id', function ($query) {
+                $query->select(DB::raw('max(warehouse_id)'))
+                    ->from('purchases');
+            })
+            ->pluck('id');
+        $purchaseItems = DB::table('purchase_items')
+            ->where('purchases_id', $purchases_id)
+            ->pluck('product_id');
+        $products = Products::whereIn('id', $purchaseItems)->get();
+
         $response = [
             'staff' => $staff,
             'customers' => $customers,

@@ -116,7 +116,9 @@ class OrderCustomerController extends Controller
             )
             ->groupBy('products.id', 'products.name', 'products.code')
             ->get();
-
+        if (!$listProductsOrder) {
+            return response()->json(['get faild', 401]);
+        }
         $response = [
             'list_productOrder' => $listProductsOrder,
         ];

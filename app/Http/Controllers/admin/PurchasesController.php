@@ -25,12 +25,10 @@ class PurchasesController extends Controller
             $chunkSize = 250;
             $file = $request->file('file');
             $data = Excel::toCollection(new ImportFileExcel, $file);
-
-            return response()->json(['create successful', 201]);
+            // $product = Products::where('code', $code)->first();
             foreach ($data->chunk($chunkSize) as $chunk) {
                 dd($chunk[0]);
             }
-
 
             if (!empty($request)) {
                 $data = [
@@ -44,17 +42,17 @@ class PurchasesController extends Controller
                 $purchase_id = $purchase->id;
             }
 
-            // foreach ($request->purchases_item as $item) {
-            //     $purchases_item = new Purchase_item([
-            //         'purchases_id' => $purchase_id,
-            //         'product_id' => $item["product_id"],
-            //         'quality' => $item["quality"],
-            //         'get_more' => $item["get_more"],
-            //         'discount' => $item["discount"],
-            //         'price' => $item["price"],
-            //     ]);
-            //     $purchases_item->save();
-            // }
+            foreach ($request->purchases_item as $item) {
+                $purchases_item = new Purchase_item([
+                    'purchases_id' => $purchase_id,
+                    'product_id' => $item["product_id"],
+                    'quality' => $item["quality"],
+                    'get_more' => $item["get_more"],
+                    'discount' => $item["discount"],
+                    'price' => $item["price"],
+                ]);
+                $purchases_item->save();
+            }
         }
     }
     public function filter(Request $request)
