@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Imports\ImportFileExcel;
 use App\Models\Products;
 use App\Models\Purchase;
 use App\Models\Purchase_item;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PurchasesController extends Controller
 {
@@ -17,12 +19,66 @@ class PurchasesController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    public function upload_file(Request $request)
+    {
+        if ($request->hasFile('file')) {
+            $chunkSize = 250;
+            $file = $request->file('file');
+            $data = Excel::toCollection(new ImportFileExcel, $file);
+
+            return response()->json(['create successful', 201]);
+            foreach ($data->chunk($chunkSize) as $chunk) {
+                dd($chunk[0]);
+            }
+
+
+            if (!empty($request)) {
+                $data = [
+                    'date' => $request->purchases["date"],
+                    'warehouse_id' => $request->purchases["warehouse_id"],
+                    'note' => "",
+                    'status' => 0,
+                ];
+                $purchase = Purchase::create($data);
+                $purchase->save();
+                $purchase_id = $purchase->id;
+            }
+
+            // foreach ($request->purchases_item as $item) {
+            //     $purchases_item = new Purchase_item([
+            //         'purchases_id' => $purchase_id,
+            //         'product_id' => $item["product_id"],
+            //         'quality' => $item["quality"],
+            //         'get_more' => $item["get_more"],
+            //         'discount' => $item["discount"],
+            //         'price' => $item["price"],
+            //     ]);
+            //     $purchases_item->save();
+            // }
+        }
+    }
     public function filter(Request $request)
     {
         try {
-            $list_item = Purchase::whereBetween('created_at', [$request->from_date, $request->to_date])->get();
+            $result = DB::table('purchases')
+                ->join('purchase_items', 'purchases.id', '=', 'purchase_items.purchases_id')
+                ->join('warehouses', 'purchases.warehouse_id', '=', 'warehouses.id')
+                ->select(
+                    'purchases.*',
+                    DB::raw('SUM((purchase_items.price * purchase_items.quality - ((purchase_items.price * purchase_items.quality ) * (purchase_items.discount / 100)))) as total_price'),
+                    DB::raw('SUM(purchase_items.quality) as total_quality'),
+                    'purchases.warehouse_id',
+                    'warehouses.fullname as warehouse_name',
+                )
+                ->groupBy('purchases.id', 'purchases.date', 'purchases.status', 'purchases.note', 'purchases.warehouse_id', 'purchases.created_at', 'purchases.updated_at', 'purchases.warehouse_id', 'warehouses.fullname')
+                ->when($request->from_date, function ($query) use ($request) {
+                    return $query->where('purchases.date', '>=', $request->from_date);
+                })
+                ->when($request->to_date, function ($query) use ($request) {
+                    return $query->where('purchases.date', '<=', $request->to_date);
+                })->get();
             $response = [
-                "list_item" => $list_item
+                "list_item" => $result
             ];
             return response()->json($response, 200);
         } catch (\Exception $e) {
@@ -110,7 +166,7 @@ class PurchasesController extends Controller
             'purchases.warehouse_id' => 'required|integer',
             'purchases.status' => 'required|integer',
         ]);
-   
+
         if ($request) {
             $data = [
                 'date' => $request->purchases["date"],

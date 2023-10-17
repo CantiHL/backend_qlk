@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Location;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -32,7 +33,11 @@ class CustomerController extends Controller
     }
     public function index()
     {
-        $list_customers = Customer::get();
+        $list_customers = DB::table('customers')
+        ->select('customers.*', DB::raw('COUNT(sales.customer_id) as total_orders'))
+        ->leftJoin('sales', 'customers.id', '=', 'sales.customer_id')
+        ->groupBy('customers.id', 'customers.fullname','customers.address','customers.phone','customers.debt','customers.location','customers.created_at','customers.updated_at')
+        ->get();
         $list_location = Location::select('id', 'name', 'desc')->get();
         $response = [
             'data' => $list_customers,

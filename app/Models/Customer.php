@@ -16,4 +16,8 @@ class Customer extends Model
         'debt',
         'location'
     ];
+    public function sales()
+    {
+        return $this->hasMany(Sales::class, 'customer_id'); 
+    }
 }

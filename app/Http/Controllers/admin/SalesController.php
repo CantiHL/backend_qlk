@@ -54,7 +54,7 @@ class SalesController extends Controller
     }
     public function filter_total(Request $request)
     {
-        $sales_list = DB::table('sales')
+        $filter_list = DB::table('sales')
             ->join('sales_items', 'sales.id', '=', 'sales_items.sales_id')
             ->leftJoin('paids', 'sales.id', '=', 'paids.sales_id')
             ->join('warehouses', 'sales.warehouse_id', '=', 'warehouses.id')
@@ -87,8 +87,27 @@ class SalesController extends Controller
                 'sales.discount',
                 'sales.debt',
                 'paids.money'
-            )->get();
-            dd($sales_list);
+            )
+            ->when($request->from_date, function ($query) use ($request) {
+                return $query->where('sales.date', '>=', $request->from_date);
+            })
+            ->when($request->to_date, function ($query) use ($request) {
+                return $query->where('sales.date', '<=', $request->to_date);
+            })
+            ->when($request->staff_id, function ($query) use ($request) {
+                return $query->where('sales.staff_id', $request->staff_id);
+            })
+            ->when($request->customer_id, function ($query) use ($request) {
+                return $query->where('sales.customer_id', $request->customer_id);
+            })
+            ->when($request->status_id !== null, function ($query) use ($request) {
+                return $query->where('sales.status', $request->status_id);
+            })
+            ->get();
+        $response = [
+            'filter_list' => $filter_list,
+        ];
+        return response()->json($response, 200);
     }
     public function filter_products($id)
     {
