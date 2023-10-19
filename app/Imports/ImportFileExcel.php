@@ -43,5 +43,10 @@ class ImportFileExcel implements ToModel
         return new Purchase_item([
             //
         ]);
+        
+    }
+    public function startRow(): int
+    {
+        return 2;
     }
 }

@@ -106,7 +106,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('/detail/{id}', [PurchasesController::class, 'getPurchasesDetail']);
     });
     Route::group(['prefix' => 'sales'], function () {
-        Route::get('/list', [SalesController::class, 'index']);
+        Route::get('/list', [SalesController::class, 'index']); 
         Route::get('/get/create', [SalesController::class, 'getCreate']);
         Route::post('/create', [SalesController::class, 'store']);
         Route::get('/edit/{id}', [SalesController::class, 'edit']);

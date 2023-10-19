@@ -16,7 +16,7 @@ class ProductsController extends Controller
      */
     public function filter(Request $request)
     {
-        if ($request) {
+        if (!empty($request)) {
             $group_id = $request->id;
             $products = Products::when(count($group_id) > 0, function ($query) use ($group_id) {
                 return $query->whereIn('group', $group_id);

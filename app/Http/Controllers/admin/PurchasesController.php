@@ -21,38 +21,54 @@ class PurchasesController extends Controller
      */
     public function upload_file(Request $request)
     {
+        $request->validate([
+            'file' => 'required|mimes:xls,xlsx,csv|max:51200',
+        ]);
         if ($request->hasFile('file')) {
-            $chunkSize = 250;
             $file = $request->file('file');
-            $data = Excel::toCollection(new ImportFileExcel, $file);
-            // $product = Products::where('code', $code)->first();
-            foreach ($data->chunk($chunkSize) as $chunk) {
-                dd($chunk[0]);
-            }
-
-            if (!empty($request)) {
-                $data = [
-                    'date' => $request->purchases["date"],
-                    'warehouse_id' => $request->purchases["warehouse_id"],
-                    'note' => "",
+            $data = Excel::toCollection(new ImportFileExcel, $file)->first();
+            if ($data->count() > 0) {
+                // check product code 
+                $data->shift();
+                foreach ($data as $row) {
+                    $product = Products::where('code', $row[0])->first();
+                    if (!$product) {
+                        $response = [
+                            'message' => 'không tìm thấy mã sản phẩm',
+                            'product_code' => $row[0],
+                        ];
+                        return response()->json($response, 400);
+                    }
+                }
+                // create purchase
+                $purchase = Purchase::create([
+                    'date' => $request["date"],
+                    'warehouse_id' => $request["warehouse_id"],
+                    'note' => null,
                     'status' => 0,
-                ];
-                $purchase = Purchase::create($data);
-                $purchase->save();
-                $purchase_id = $purchase->id;
-            }
-
-            foreach ($request->purchases_item as $item) {
-                $purchases_item = new Purchase_item([
-                    'purchases_id' => $purchase_id,
-                    'product_id' => $item["product_id"],
-                    'quality' => $item["quality"],
-                    'get_more' => $item["get_more"],
-                    'discount' => $item["discount"],
-                    'price' => $item["price"],
                 ]);
-                $purchases_item->save();
+                $purchase_id = $purchase->id;
+                // create purchase_item
+                foreach ($data as $row) {
+                    $product = Products::where('code', $row[0])->first();
+                    if ($product) {
+                        $purchaseItem = new Purchase_item([
+                            'purchases_id' => $purchase_id,
+                            'product_id' => $product->id,
+                            'quality' => $row[3],
+                            'get_more' => 0,
+                            'discount' => 0,
+                            'price' => $product->sell_price,
+                        ]);
+                        $purchaseItem->save();
+                    } else {
+                        return response()->json(['message' => 'Error code product Failed'], 400);
+                    }
+                }
+                return response()->json(['message' => 'upload file successful'], 201);
             }
+        } else {
+            return response()->json(['message' => 'upload file Failed'], 400);
         }
     }
     public function filter(Request $request)
