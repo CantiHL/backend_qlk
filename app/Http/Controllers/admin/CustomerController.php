@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
+use App\Imports\ImportFileExcel;
 use App\Models\Customer;
 use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+
+
 
 class CustomerController extends Controller
 {
@@ -15,6 +19,35 @@ class CustomerController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+
+    public function upload_file(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xls,xlsx,csv|max:51200',
+        ]);
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $data = Excel::toCollection(new ImportFileExcel, $file)->first();
+            if ($data->count() > 0) {
+                // create customers
+                $data->shift();
+                foreach ($data as $row) {
+                    $purchaseItem = new Customer([
+                        'fullname' => $row[0],
+                        'address' => $row[1],
+                        'phone' => $row[2],
+                        'debt' => 0,
+                        'location' => 0
+                    ]);
+                    $purchaseItem->save();
+                }
+                return response()->json(['message' => 'upload file successful'], 201);
+            }
+        } else {
+            return response()->json(['message' => 'upload file Failed'], 400);
+        }
+    }
     public function get_debt($id)
     {
         $customer = Customer::find($id);
@@ -34,10 +67,10 @@ class CustomerController extends Controller
     public function index()
     {
         $list_customers = DB::table('customers')
-        ->select('customers.*', DB::raw('COUNT(sales.customer_id) as total_orders'))
-        ->leftJoin('sales', 'customers.id', '=', 'sales.customer_id')
-        ->groupBy('customers.id', 'customers.fullname','customers.address','customers.phone','customers.debt','customers.location','customers.created_at','customers.updated_at')
-        ->get();
+            ->select('customers.*', DB::raw('COUNT(sales.customer_id) as total_orders'))
+            ->leftJoin('sales', 'customers.id', '=', 'sales.customer_id')
+            ->groupBy('customers.id', 'customers.fullname', 'customers.address', 'customers.phone', 'customers.debt', 'customers.location', 'customers.created_at', 'customers.updated_at')
+            ->get();
         $list_location = Location::select('id', 'name', 'desc')->get();
         $response = [
             'data' => $list_customers,

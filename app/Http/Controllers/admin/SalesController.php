@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
+use App\Imports\ImportFileExcel;
 use App\Models\Customer;
 use App\Models\Products;
-use App\Models\Purchase;
 use App\Models\Purchase_item;
 use App\Models\Sales;
 use App\Models\Sales_item;
@@ -13,6 +13,7 @@ use App\Models\Staff;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SalesController extends Controller
 {
@@ -21,6 +22,59 @@ class SalesController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    public function upload_file(Request $request)
+    {
+        // $request->validate([
+        //     'file' => 'required|mimes:xls,xlsx,csv|max:51200',
+        // ]);
+        // if ($request->hasFile('file')) {
+        //     $file = $request->file('file');
+        //     $data = Excel::toCollection(new ImportFileExcel, $file)->first();
+        //     if ($data->count() > 0) {
+        //         // check product code 
+        //         $data->shift();
+        //         foreach ($data as $row) {
+        //             $product = Products::where('code', $row[0])->first();
+        //             if (!$product) {
+        //                 $response = [
+        //                     'message' => 'không tìm thấy mã sản phẩm',
+        //                     'product_code' => $row[0],
+        //                 ];
+        //                 return response()->json($response, 400);
+        //             }
+        //         }
+        //         // create purchase
+        //         $purchase = Purchase::create([
+        //             'date' => $request["date"],
+        //             'warehouse_id' => $request["warehouse_id"],
+        //             'note' => null,
+        //             'status' => 0,
+        //         ]);
+        //         $purchase_id = $purchase->id;
+
+        //         // create purchase_item
+        //         foreach ($data as $row) {
+        //             $product = Products::where('code', $row[0])->first();
+        //             if ($product) {
+        //                 $purchaseItem = new Purchase_item([
+        //                     'purchases_id' => $purchase_id,
+        //                     'product_id' => $product->id,
+        //                     'quality' => $row[3],
+        //                     'get_more' => 0,
+        //                     'discount' => 0,
+        //                     'price' => $product->sell_price,
+        //                 ]);
+        //                 $purchaseItem->save();
+        //             } else {
+        //                 return response()->json(['message' => 'Error code product Failed'], 400);
+        //             }
+        //         }
+        //         return response()->json(['message' => 'upload file successful'], 201);
+        //     }
+        // } else {
+        //     return response()->json(['message' => 'upload file Failed'], 400);
+        // }
+    }
     public function getSalesBill($id)
     {
         $sales_bill = DB::table('sales')
@@ -132,17 +186,14 @@ class SalesController extends Controller
         $staff = Staff::select('id', 'fullname')->get();
         $customers = Customer::select('id', 'fullname', 'address')->get();
         $warehouses = Warehouse::select('id', 'fullname')->get();
-        $purchases_id = DB::table('purchases')
+        $purchase_id = DB::table('purchases')
             ->where('warehouse_id', function ($query) {
                 $query->select(DB::raw('max(warehouse_id)'))
                     ->from('purchases');
             })
             ->pluck('id');
-        $purchaseItems = DB::table('purchase_items')
-            ->where('purchases_id', $purchases_id)
-            ->pluck('product_id');
+        $purchaseItems = Purchase_item::whereIn('purchases_id', $purchase_id->all())->pluck('product_id');
         $products = Products::whereIn('id', $purchaseItems)->get();
-
         $response = [
             'staff' => $staff,
             'customers' => $customers,

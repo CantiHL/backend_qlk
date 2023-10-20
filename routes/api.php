@@ -117,6 +117,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::post('/get/bill/{id}', [SalesController::class, 'getSalesBill']);
         Route::post('/filter', [SalesController::class, 'filter_total']);
         Route::post('/filter/products/{id}', [SalesController::class, 'filter_products']);
+        Route::post('/upload/file', [SalesController::class,'upload_file']);
     });
 });
 Route::post('/logout', [AuthController::class, 'logout']);
