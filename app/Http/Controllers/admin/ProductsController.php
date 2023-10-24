@@ -80,8 +80,6 @@ class ProductsController extends Controller
         $Warehouse = DB::table('warehouses')->select('id', 'fullname')->get();
         $products = DB::table('products')
             ->leftJoin('product_groups', 'products.group', '=', 'product_groups.id')
-            ->leftJoin('sales_items', 'products.id', '=', 'sales_items.product_id')
-            ->leftJoin('purchase_items', 'products.id', '=', 'purchase_items.product_id')
             ->select(
                 'products.id',
                 'products.name',
@@ -92,21 +90,19 @@ class ProductsController extends Controller
                 'products.stock',
                 'products.active',
                 'product_groups.group_name as product_groups_name',
-                DB::raw('SUM(DISTINCT sales_items.quality) as sell_quality'),
-                DB::raw('SUM(DISTINCT purchase_items.quality) as purchase_quality')
             )
-            ->groupBy(
-                'products.id',
-                'products.name',
-                'product_groups.group_name',
-                'products.code',
-                'products.buy_price',
-                'products.sell_price',
-                'products.color',
-                'products.stock',
-                'products.active',
-            )
+            ->selectSub(function ($query) {
+                $query->from('sales_items')
+                    ->whereColumn('sales_items.product_id', 'products.id')
+                    ->selectRaw('SUM(quality) as sell_quality');
+            }, 'sell_quality')
+            ->selectSub(function ($query) {
+                $query->from('purchase_items')
+                    ->whereColumn('purchase_items.product_id', 'products.id')
+                    ->selectRaw('SUM(quality) as purchase_quality');
+            }, 'purchase_quality')
             ->get();
+
         $response = [
             'totalPrice' => $totalPrice,
             'totalquality' => $totalquality,

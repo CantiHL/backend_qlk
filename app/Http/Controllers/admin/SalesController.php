@@ -171,6 +171,7 @@ class SalesController extends Controller
             ->join('purchase_items', 'purchases.id', '=', 'purchase_items.purchases_id')
             ->join('products', 'purchase_items.product_id', '=', 'products.id')
             ->select('products.*')
+            ->distinct()
             ->get();
         if (!$products_filter) {
             return response()->json(['filter faild'], 401);

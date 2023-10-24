@@ -48,7 +48,6 @@ class PurchasesController extends Controller
                     'status' => 0,
                 ]);
                 $purchase_id = $purchase->id;
-
                 // create purchase_item
                 foreach ($data as $row) {
                     $product = Products::where('code', $row[0])->first();
