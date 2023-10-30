@@ -59,7 +59,7 @@ class PurchasesController extends Controller
                             'quality' => $row[3],
                             'get_more' => 0,
                             'discount' => 0,
-                            'price' => $product->sell_price,
+                            'price' => $product->sale_price,
                         ]);
                         $purchaseItem->save();
                     } else {
@@ -78,6 +78,7 @@ class PurchasesController extends Controller
             $result = DB::table('purchases')
                 ->join('purchase_items', 'purchases.id', '=', 'purchase_items.purchases_id')
                 ->join('warehouses', 'purchases.warehouse_id', '=', 'warehouses.id')
+                ->where('purchases.trash', 0)
                 ->select(
                     'purchases.*',
                     DB::raw('SUM((purchase_items.price * purchase_items.quality - ((purchase_items.price * purchase_items.quality ) * (purchase_items.discount / 100)))) as total_price'),
@@ -85,7 +86,7 @@ class PurchasesController extends Controller
                     'purchases.warehouse_id',
                     'warehouses.fullname as warehouse_name',
                 )
-                ->groupBy('purchases.id', 'purchases.date', 'purchases.status', 'purchases.note', 'purchases.warehouse_id', 'purchases.created_at', 'purchases.updated_at', 'purchases.warehouse_id', 'warehouses.fullname')
+                ->groupBy('purchases.id', 'purchases.date', 'purchases.status', 'purchases.note', 'purchases.warehouse_id', 'purchases.created_at', 'purchases.updated_at', 'purchases.warehouse_id', 'warehouses.fullname', 'purchases.trash')
                 ->when($request->from_date, function ($query) use ($request) {
                     return $query->where('purchases.date', '>=', $request->from_date);
                 })
@@ -120,9 +121,12 @@ class PurchasesController extends Controller
     public function list_purchases()
     {
         $totalPrice = DB::table('purchase_items')->selectRaw('SUM((price * quality) - ((price * quality) * (discount/100))) as total_price')->get()->pluck('total_price')->first();
+        $totalTarget_purchase = DB::table('target_purchases')->sum('target');
+        $reachTargetPercent = $totalPrice / $totalTarget_purchase * 100;
         $result = DB::table('purchases')
             ->join('purchase_items', 'purchases.id', '=', 'purchase_items.purchases_id')
             ->join('warehouses', 'purchases.warehouse_id', '=', 'warehouses.id')
+            ->where('purchases.trash', 0)
             ->select(
                 'purchases.*',
                 DB::raw('SUM((purchase_items.price * purchase_items.quality - ((purchase_items.price * purchase_items.quality ) * (purchase_items.discount / 100)))) as total_price'),
@@ -130,7 +134,7 @@ class PurchasesController extends Controller
                 'purchases.warehouse_id',
                 'warehouses.fullname as warehouse_name',
             )
-            ->groupBy('purchases.id', 'purchases.date', 'purchases.status', 'purchases.note', 'purchases.warehouse_id', 'purchases.created_at', 'purchases.updated_at', 'purchases.warehouse_id', 'warehouses.fullname')
+            ->groupBy('purchases.id', 'purchases.date', 'purchases.status', 'purchases.note', 'purchases.warehouse_id', 'purchases.created_at', 'purchases.updated_at', 'purchases.warehouse_id', 'warehouses.fullname', 'purchases.trash')
             ->get();
         if (!$result && !$totalPrice) {
             return response()->json(['get faild', 401]);
@@ -138,6 +142,8 @@ class PurchasesController extends Controller
         $response = [
             'purchases' => $result,
             'totalPrice' => $totalPrice,
+            'totalTarget_purchase' => $totalTarget_purchase,
+            'reachTargetPercent' => number_format($reachTargetPercent, 0)
         ];
         return response()->json($response, 200);
     }
@@ -277,7 +283,7 @@ class PurchasesController extends Controller
             foreach ($request->purchases_item as $item) {
                 Purchase_item::updateOrInsert(
                     [
-                        'purchases_id' => $id,
+                        '' => $id,
                         'product_id' => $item["product_id"],
                     ],
                     [
@@ -309,6 +315,17 @@ class PurchasesController extends Controller
         $delete = Purchase::findOrFail($id);
         if ($delete) {
             $delete->delete();
+            return response()->json(["Delete successful ", 200]);
+        } else {
+            return response()->json(['message' => 'faild'], 401);
+        }
+    }
+    public function trash($id)
+    {
+        $delete = Purchase::where('id', $id)->update([
+            'trash' => 1
+        ]);
+        if ($delete) {
             return response()->json(["Delete successful ", 200]);
         } else {
             return response()->json(['message' => 'faild'], 401);

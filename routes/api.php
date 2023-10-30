@@ -1,17 +1,20 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController;
-use App\Http\Controllers\admin\CustomerController;
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DiscountController;
-use App\Http\Controllers\admin\LocationController;
-use App\Http\Controllers\admin\OrderCustomerController;
-use App\Http\Controllers\admin\PaidController;
+use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\OrderCustomerController;
+use App\Http\Controllers\Admin\PaidController;
 use App\Http\Controllers\Admin\Products_GroupController;
 use App\Http\Controllers\Admin\ProductsController;
 use App\Http\Controllers\Admin\PurchasesController;
-use App\Http\Controllers\admin\SalesController;
+use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\Admin\StaffController;
+use App\Http\Controllers\Admin\StatisticalController;
+use App\Http\Controllers\Admin\TargetController;
 use App\Http\Controllers\Admin\WareHouseController;
+use App\Http\Controllers\Admin\TargetPurchaseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,6 +42,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     });
     Route::group(['prefix' => 'products'], function () {
         Route::get('/list', [ProductsController::class, 'index']);
+        Route::post('/list', [ProductsController::class, 'index']);
         Route::post('/create', [ProductsController::class, 'store']);
         Route::get('/edit/{id}', [ProductsController::class, 'edit']);
         Route::put('/update/{id}', [ProductsController::class, 'update']);
@@ -90,8 +94,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::delete('/delete/{id}', [CustomerController::class, 'destroy']);
         Route::get('/get/debt/{id}', [CustomerController::class, 'get_debt']);
         Route::put('/update/debt/{id}', [CustomerController::class, 'update_debt']);
-        Route::get('order/{id}',[OrderCustomerController::class,'get_order']);
-        Route::get('/products/order/{id}',[OrderCustomerController::class,'getListProductsOrder']);
+        Route::get('order/{id}', [OrderCustomerController::class, 'get_order']);
+        Route::get('/products/order/{id}', [OrderCustomerController::class, 'getListProductsOrder']);
+        Route::post('/upload/file', [CustomerController::class, 'upload_file']);
+
     });
 
     Route::group(['prefix' => 'purchases'], function () {
@@ -100,24 +106,45 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('/edit/{id}', [PurchasesController::class, 'edit']);
         Route::put('/update/{id}', [PurchasesController::class, 'update']);
         Route::delete('/delete/{id}', [PurchasesController::class, 'destroy']);
+        Route::delete('/trash/{id}', [PurchasesController::class, 'trash']);
         Route::post('/filter', [PurchasesController::class, 'filter']);
         Route::get('/list', [PurchasesController::class, 'list_purchases']);
-        Route::post('/upload/file', [PurchasesController::class,'upload_file']);
+        Route::post('/upload/file', [PurchasesController::class, 'upload_file']);
         Route::get('/detail/{id}', [PurchasesController::class, 'getPurchasesDetail']);
     });
     Route::group(['prefix' => 'sales'], function () {
-        Route::get('/list', [SalesController::class, 'index']); 
+        Route::get('/list', [SalesController::class, 'index']);
         Route::get('/get/create', [SalesController::class, 'getCreate']);
         Route::post('/create', [SalesController::class, 'store']);
         Route::get('/edit/{id}', [SalesController::class, 'edit']);
         Route::put('/update/{id}', [SalesController::class, 'update']);
         Route::delete('/delete/{id}', [SalesController::class, 'destroy']);
+        Route::delete('/trash/{id}', [SalesController::class, 'trash']);
         Route::post('/create/paid', [PaidController::class, 'store']);
         Route::put('/update/status/{id}', [SalesController::class, 'update_status']);
         Route::post('/get/bill/{id}', [SalesController::class, 'getSalesBill']);
         Route::post('/filter', [SalesController::class, 'filter_total']);
         Route::post('/filter/products/{id}', [SalesController::class, 'filter_products']);
-        Route::post('/upload/file', [SalesController::class,'upload_file']);
+        Route::post('/upload/file', [SalesController::class, 'upload_file']);
+    });
+    Route::group(['prefix' => 'statistical'], function () {
+        Route::get('/staff-salary', [StatisticalController::class, 'SalerSalary']);
+        Route::post('/staff-salary', [StatisticalController::class, 'SalerSalary']);
+        Route::get('/discount-report', [StatisticalController::class, 'discountReport']);
+        Route::post('/discount-report', [StatisticalController::class, 'discountReport']);
+        Route::get('/import-sales', [StatisticalController::class, 'importSales']);
+        Route::post('/import-sales', [StatisticalController::class, 'importSales']);
+        Route::get('/guarantee-product', [StatisticalController::class, 'guaranteeProduct']);
+        Route::post('/guarantee-product', [StatisticalController::class, 'guaranteeProduct']);
+        Route::get('/real-sales', [StatisticalController::class, 'realSales']);
+        Route::post('/real-sales', [StatisticalController::class, 'realSales']);
+    });
+    Route::group(['prefix' => 'target'], function () {
+        Route::get('/target-purchase', [TargetPurchaseController::class, 'index']);
+        Route::post('/target-purchase-create', [TargetPurchaseController::class, 'create']);
+        Route::get('/target', [TargetController::class, 'index']);
+        Route::post('/target', [TargetController::class, 'index']);
+        Route::post('/target-create', [TargetController::class, 'create']);
     });
 });
 Route::post('/logout', [AuthController::class, 'logout']);

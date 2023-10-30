@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\admin;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Imports\ImportFileExcel;
@@ -24,77 +24,68 @@ class SalesController extends Controller
      */
     public function upload_file(Request $request)
     {
-        // $request->validate([
-        //     'file' => 'required|mimes:xls,xlsx,csv|max:51200',
-        // ]);
-        // if ($request->hasFile('file')) {
-        //     $file = $request->file('file');
-        //     $data = Excel::toCollection(new ImportFileExcel, $file)->first();
-        //     if ($data->count() > 0) {
-        //         // check product code 
-        //         $data->shift();
-        //         foreach ($data as $row) {
-        //             $product = Products::where('code', $row[0])->first();
-        //             if (!$product) {
-        //                 $response = [
-        //                     'message' => 'không tìm thấy mã sản phẩm',
-        //                     'product_code' => $row[0],
-        //                 ];
-        //                 return response()->json($response, 400);
-        //             }
-        //         }
-        //         // create purchase
-        //         $purchase = Purchase::create([
-        //             'date' => $request["date"],
-        //             'warehouse_id' => $request["warehouse_id"],
-        //             'note' => null,
-        //             'status' => 0,
-        //         ]);
-        //         $purchase_id = $purchase->id;
-
-        //         // create purchase_item
-        //         foreach ($data as $row) {
-        //             $product = Products::where('code', $row[0])->first();
-        //             if ($product) {
-        //                 $purchaseItem = new Purchase_item([
-        //                     'purchases_id' => $purchase_id,
-        //                     'product_id' => $product->id,
-        //                     'quality' => $row[3],
-        //                     'get_more' => 0,
-        //                     'discount' => 0,
-        //                     'price' => $product->sell_price,
-        //                 ]);
-        //                 $purchaseItem->save();
-        //             } else {
-        //                 return response()->json(['message' => 'Error code product Failed'], 400);
-        //             }
-        //         }
-        //         return response()->json(['message' => 'upload file successful'], 201);
-        //     }
-        // } else {
-        //     return response()->json(['message' => 'upload file Failed'], 400);
-        // }
+        $request->validate([
+            'file' => 'required|mimes:xls,xlsx,csv|max:51200',
+        ]);
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $data = Excel::toCollection(new ImportFileExcel, $file)->first();
+            if ($data->count() > 0) {
+                $data->shift();
+                $sale = Sales::create([
+                    'user_id' => auth()->id(),
+                    'staff_id' => $request->staff_id,
+                    'customer_id' => $request->customer_id,
+                    'warehouse_id' => $request->warehouse_id,
+                    'date' => $request->date,
+                    'note' => $request->note ? $request->note : null,
+                ]);
+                $sale_id = $sale->id;
+                foreach ($data as $row) {
+                    $product = Products::where('code', $row[0])->first();
+                    if ($product && $product->stock >= $row[3]) {
+                        $saleItem = new Sales_item([
+                            'sales_id' => $sale_id,
+                            'product_id' => $product->id,
+                            'quality' => $row[3],
+                            'get_more' => $row[4],
+                            'discount' => $row[5],
+                            'price' => $row[6],
+                        ]);
+                        $product->stock = $product->stock - $row[3];
+                        $product->save();
+                        $saleItem->save();
+                    }
+                }
+                return response()->json(['message' => 'upload file successful'], 201);
+            }
+        } else {
+            return response()->json(['message' => 'upload file Failed'], 400);
+        }
     }
     public function getSalesBill($id)
     {
         $sales_bill = DB::table('sales')
+            ->where('sales.trash', 0)
             ->where('sales.id', $id)
             ->join('sales_items', 'sales.id', '=', 'sales_items.sales_id')
             ->join('products', 'sales_items.product_id', '=', 'products.id')
             ->select('sales_items.*', 'sales.staff_id', 'products.name', 'products.code')
             ->get();
         $sales_staff = DB::table('sales')
+            ->where('sales.trash', 0)
             ->join('staff', 'sales.staff_id', '=', 'staff.id')
             ->select('staff.fullname as name_staff', 'staff.phone as phone_staff')
             ->where('sales.id', $id)
             ->first();
         $customer = DB::table('sales')
             ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->where('sales.trash', 0)
             ->select('customers.fullname as name_customers', 'customers.phone as phone_customers', 'customers.address as address_customers')
             ->where('sales.id', $id)
             ->first();
         $date = DB::table('sales')
-            ->where('sales.id', $id)->select('date', 'id', 'discount')->get()->first();
+            ->where('sales.id', $id)->where('sales.trash', 0)->select('date', 'id', 'discount')->get()->first();
 
         if (!$sales_bill && !$sales_staff && !$customer) {
             return response()->json(['get faild', 401]);
@@ -115,6 +106,7 @@ class SalesController extends Controller
             ->join('warehouses', 'sales.warehouse_id', '=', 'warehouses.id')
             ->join('staff', 'sales.staff_id', '=', 'staff.id')
             ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->where('sales.trash', 0)
             ->select(
                 'sales.*',
                 DB::raw('SUM((sales_items.price * sales_items.quality - ((sales_items.price * sales_items.quality ) * (sales_items.discount / 100)))) as total_price'),
@@ -141,7 +133,8 @@ class SalesController extends Controller
                 'sales.customer_id',
                 'sales.discount',
                 'sales.debt',
-                'paids.money'
+                'paids.money',
+                'sales.trash'
             )
             ->when($request->from_date, function ($query) use ($request) {
                 return $query->where('sales.date', '>=', $request->from_date);
@@ -237,7 +230,7 @@ class SalesController extends Controller
         ]);
         $customers->prepend($fakeDatacustomers);
         $warehouses = Warehouse::select('id', 'fullname', 'address')->get();
-        $totalSales = Sales::join('sales_items', 'sales.id', '=', 'sales_items.sales_id')
+        $totalSales = Sales::join('sales_items', 'sales.id', '=', 'sales_items.sales_id')->where('sales.trash', 0)
             ->selectRaw('SUM(((sales_items.price * sales_items.quality) - ((sales_items.price * sales_items.quality) * (sales_items.discount/100)))-((sales_items.price * sales_items.quality) - ((sales_items.price * sales_items.quality) * (sales_items.discount/100))) * (sales.discount/100)) as total_price')
             ->groupBy('sales_items.sales_id')
             ->get()
@@ -245,15 +238,18 @@ class SalesController extends Controller
             ->sum();
         $sales_paid = DB::table('sales')
             ->where('status', 1)
+            ->where('sales.trash', 0)
             ->join('sales_items', 'sales.id', '=', 'sales_items.sales_id')
             ->selectRaw('SUM(((sales_items.price * sales_items.quality) - ((sales_items.price * sales_items.quality) * (sales_items.discount/100)))-((sales_items.price * sales_items.quality) - ((sales_items.price * sales_items.quality) * (sales_items.discount/100))) * (sales.discount/100)) as unpaid')
             ->pluck('unpaid')
             ->sum();
         $paids = DB::table('sales')
+            ->where('sales.trash', 0)
             ->where('status', 0)
             ->join('paids', 'sales.id', '=', 'paids.sales_id')
             ->select('money')->sum('money');
         $sales_list = DB::table('sales')
+            ->where('sales.trash', 0)
             ->join('sales_items', 'sales.id', '=', 'sales_items.sales_id')
             ->leftJoin('paids', 'sales.id', '=', 'paids.sales_id')
             ->join('warehouses', 'sales.warehouse_id', '=', 'warehouses.id')
@@ -285,7 +281,8 @@ class SalesController extends Controller
                 'sales.customer_id',
                 'sales.discount',
                 'sales.debt',
-                'paids.money'
+                'paids.money',
+                'sales.trash'
             )
             ->get();
         $total_paids = $sales_paid + $paids;
@@ -519,5 +516,25 @@ class SalesController extends Controller
             $delete->delete();
             return response()->json(['delete successful', 200]);
         }
+        return response()->json(['delete successful', 200]);
     }
+    public function trash($id)
+    {
+        $delete = Sales::where('id', $id)->update([
+            'trash' => 1
+        ]);
+        if ($delete) {
+            return response()->json(["Delete successful ", 200]);
+        } else {
+            return response()->json(['message' => 'faild'], 401);
+        }
+    }
+
+    // public function exportSale(Request $request)
+    // {
+    //     $condition = [
+    //         'date' => $request->date,
+    //         'date' => $request->date,
+    //     ];
+    // }
 }

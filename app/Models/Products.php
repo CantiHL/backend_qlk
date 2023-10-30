@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use App\Models\Discount;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ class Products extends Model
         'name',
         'code',
         'buy_price',
-        'sell_price',
+        'sale_price',
         'color',
         'stock',
         'guarantee',
@@ -28,5 +29,5 @@ class Products extends Model
     {
         return $this->belongsTo(Discount::class);
     }
-   
+
 }

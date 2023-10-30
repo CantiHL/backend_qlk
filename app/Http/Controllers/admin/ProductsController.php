@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Products;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -28,7 +29,7 @@ class ProductsController extends Controller
                     'products.name',
                     'products.code',
                     'products.buy_price',
-                    'products.sell_price',
+                    'products.sale_price',
                     'products.color',
                     'products.stock',
                     'products.active',
@@ -42,7 +43,7 @@ class ProductsController extends Controller
                     'product_groups.group_name',
                     'products.code',
                     'products.buy_price',
-                    'products.sell_price',
+                    'products.sale_price',
                     'products.color',
                     'products.stock',
                     'products.active',
@@ -72,8 +73,10 @@ class ProductsController extends Controller
         }
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        $warehouse_id = $request->warehouse_id;
+        $product_group_id = $request->product_group_id;
         $totalPrice = DB::table('purchase_items')->selectRaw('SUM(price * quality) as total_price')->value('total_price');
         $totalquality = DB::table('purchase_items')->selectRaw('SUM(quality) as total_quality')->value('total_quality');
         $ProductGroup = DB::table('product_groups')->select('id', 'group_name')->get();
@@ -82,12 +85,20 @@ class ProductsController extends Controller
             ->leftJoin('product_groups', 'products.group', '=', 'product_groups.id')
             ->leftJoin('sales_items', 'products.id', '=', 'sales_items.product_id')
             ->leftJoin('purchase_items', 'products.id', '=', 'purchase_items.product_id')
+            ->leftJoin('purchases', 'purchases.id', '=', 'purchase_items.purchases_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'purchases.warehouse_id')
+            ->when($warehouse_id, function (Builder $query, int $warehouse_id) {
+                $query->where('warehouses.id', $warehouse_id);
+            })
+            ->when($product_group_id, function (Builder $query, int $product_group_id) {
+                $query->where('product_groups.id', $product_group_id);
+            })
             ->select(
                 'products.id',
                 'products.name',
                 'products.code',
                 'products.buy_price',
-                'products.sell_price',
+                'products.sale_price',
                 'products.color',
                 'products.stock',
                 'products.active',
@@ -101,12 +112,13 @@ class ProductsController extends Controller
                 'product_groups.group_name',
                 'products.code',
                 'products.buy_price',
-                'products.sell_price',
+                'products.sale_price',
                 'products.color',
                 'products.stock',
                 'products.active',
             )
             ->get();
+        dd($products);
         $response = [
             'totalPrice' => $totalPrice,
             'totalquality' => $totalquality,
@@ -150,7 +162,7 @@ class ProductsController extends Controller
             'name' => $request->name,
             'code' => $request->code,
             'buy_price' => $request->buy_price,
-            'sell_price' => $request->sell_price,
+            'sale_price' => $request->sell_price,
             'color' => $request->color,
             'group' => $request->group,
         ];

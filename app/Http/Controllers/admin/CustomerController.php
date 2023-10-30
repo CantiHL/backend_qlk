@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\admin;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Imports\ImportFileExcel;
@@ -33,14 +33,14 @@ class CustomerController extends Controller
                 // create customers
                 $data->shift();
                 foreach ($data as $row) {
-                    $purchaseItem = new Customer([
+                    $customer = new Customer([
                         'fullname' => $row[0],
                         'address' => $row[1],
                         'phone' => $row[2],
                         'debt' => 0,
                         'location' => 0
                     ]);
-                    $purchaseItem->save();
+                    $customer->save();
                 }
                 return response()->json(['message' => 'upload file successful'], 201);
             }
