@@ -128,8 +128,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::post('/upload/file', [SalesController::class, 'upload_file']);
     });
     Route::group(['prefix' => 'statistical'], function () {
-        Route::get('/staff-salary', [StatisticalController::class, 'SalerSalary']);
-        Route::post('/staff-salary', [StatisticalController::class, 'SalerSalary']);
+        Route::get('/staff-salary', [StatisticalController::class, 'salerSalary']);
+        Route::post('/staff-salary', [StatisticalController::class, 'salerSalary']);
         Route::get('/discount-report', [StatisticalController::class, 'discountReport']);
         Route::post('/discount-report', [StatisticalController::class, 'discountReport']);
         Route::get('/import-sales', [StatisticalController::class, 'importSales']);

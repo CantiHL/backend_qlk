@@ -20,7 +20,7 @@ use Illuminate\Http\Request;
 
 class StatisticalController extends Controller
 {
-    public function SalerSalary(Request $request)
+    public function salerSalary(Request $request)
     {
         $staffs = Staff::select('id', 'fullname')->get();
         $productGroups = Product_Group::select('id', 'group_name')->get();
