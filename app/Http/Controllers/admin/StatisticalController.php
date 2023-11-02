@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Product_Group;
 use App\Models\Products;
-use App\Models\Purchase;
 use App\Models\Purchase_item;
 use App\Models\Sales;
 use App\Models\Sales_item;
@@ -34,6 +33,7 @@ class StatisticalController extends Controller
             ->join("users", "sales.user_id", "users.id")
             ->join("staff", "sales.staff_id", "staff.id")
             ->join("customers", "sales.customer_id", "customers.id")
+            ->where('sales.trash', 0)
             ->when($from_date, function (Builder $query, $from_date) {
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $from_date)->format('Y-m-d');
                 $query->whereDate('sales.date', '>=', $formatted_date);
@@ -92,6 +92,7 @@ class StatisticalController extends Controller
             ->join("sales_items", "sales_items.sales_id", "sales.id")
             ->join("products", "products.id", "sales_items.product_id")
             ->join("discounts", "products.id", "discounts.product_id")
+            ->where('sales.trash', 0)
             ->when($from_date, function (Builder $query, $from_date) {
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $from_date)->format('Y-m-d');
                 $query->whereDate('sales.date', '>=', $formatted_date);
@@ -104,24 +105,29 @@ class StatisticalController extends Controller
                 $query->where('staff.id', $staff_id);
             })
             ->select(
-                DB::raw("DISTINCT DATE_FORMAT(sales.date,'%d-%m-%Y') as sale_date"),
+                DB::raw("DISTINCT DATE_FORMAT(sales.date,'%d-%m-%Y') as sale_date,
+                DATE_FORMAT(discounts.from_date,'%d-%m-%Y') as from_date,
+                DATE_FORMAT(discounts.to_date,'%d-%m-%Y') as to_date
+                "),
                 "staff.fullname as staff",
                 "customers.fullname as customer",
-                "sales.staff_id as staff_id",
-                "products.code as product",
-                "products.buy_price as price",
-                "products.stock as quantity",
-                "discounts.get_more as bonus",
+                "products.code as product_code",
+                "products.buy_price as buy_price",
+                "sales_items.quality as quantity",
+                "sales_items.get_more as bonus",
                 "discounts.discount as cpn_discount",
-                DB::raw("products.buy_price-products.buy_price*discounts.discount*0.01 as cpn_discount_price"),
-                "sales.discount as real_discount",
-                DB::raw("products.buy_price-products.buy_price*sales.discount*0.01 as real_discount_price"),
-                DB::raw("(products.buy_price-products.buy_price*sales.discount*0.01)-(products.buy_price-products.buy_price*discounts.discount*0.01) as disparity"),
+                "sales_items.discount as real_discount",
             )
             ->get();
         $totalDisparity = 0;
         foreach ($data as $da) {
-            $totalDisparity += $da->disparity;
+            if (strtotime($da->sale_date) <= strtotime($da->from_date) || strtotime($da->sale_date) >= strtotime($da->to_date)) {
+                $da->cpn_discount = 0;
+            }
+            $da->cpn_discount_price = $da->buy_price * $da->quantity - $da->buy_price * $da->quantity * $da->cpn_discount * 0.01;
+            $da->real_discount_price = $da->buy_price * $da->quantity - $da->buy_price * $da->quantity * $da->real_discount * 0.01;
+            $da->disparity = ($da->buy_price * $da->quantity - $da->buy_price * $da->quantity * $da->real_discount * 0.01) - ($da->buy_price * $da->quantity - $da->buy_price * $da->quantity * $da->cpn_discount * 0.01);
+            $totalDisparity += ($da->buy_price * $da->quantity - $da->buy_price * $da->quantity * $da->real_discount * 0.01) - ($da->buy_price * $da->quantity - $da->buy_price * $da->quantity * $da->cpn_discount * 0.01);
         }
         $response = [
             "staffs" => $staffs,
@@ -144,6 +150,7 @@ class StatisticalController extends Controller
             ->join("sales_items", "sales_items.sales_id", "sales.id")
             ->join("products", "products.id", "sales_items.product_id")
             ->join("product_groups", "products.group", "product_groups.id")
+            ->where('sales.trash', 0)
             ->when($from_date, function (Builder $query, $from_date) {
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $from_date)->format('Y-m-d');
                 $query->whereDate('sales.date', '>=', $formatted_date);
@@ -216,6 +223,7 @@ class StatisticalController extends Controller
         $data = Purchase_item::join('purchases', 'purchase_items.purchases_id', 'purchases.id')
             ->join('products', 'purchase_items.product_id', 'products.id')
             ->join('product_groups', 'products.group', 'product_groups.id')
+            ->where('purchases.trash', 0)
             ->when($product_group_id, function (Builder $query, int $product_group_id) {
                 $query->where('product_groups.id', $product_group_id);
             })
@@ -241,6 +249,7 @@ class StatisticalController extends Controller
             )
             ->get();
         $target = TargetPurchase::join('purchases', 'target_purchases.date', 'purchases.date')
+            ->where('purchases.trash', 0)
             ->join('purchase_items', 'purchase_items.purchases_id', 'purchases.id')
             ->select(DB::raw("SUM(purchase_items.quality) as quantity"), 'target_purchases.target as target')
             ->groupBy('target_purchases.date', 'target_purchases.target')
@@ -290,6 +299,7 @@ class StatisticalController extends Controller
             ->join("staff", "sales.staff_id", "staff.id")
             ->join("customers", "sales.customer_id", "customers.id")
             ->where('products.guarantee', '>', 0)
+            ->where('sales.trash', 0)
             ->when($from_date, function (Builder $query, $from_date) {
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $from_date)->format('Y-m-d');
                 $query->whereDate('sales.date', '>=', $formatted_date);

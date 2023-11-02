@@ -118,7 +118,6 @@ class ProductsController extends Controller
                 'products.active',
             )
             ->get();
-        dd($products);
         $response = [
             'totalPrice' => $totalPrice,
             'totalquality' => $totalquality,
