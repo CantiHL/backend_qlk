@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Paid;
 use App\Models\Product_Group;
 use App\Models\Products;
+use App\Models\Purchase;
 use App\Models\Purchase_item;
 use App\Models\Sales;
 use App\Models\Sales_item;
@@ -335,6 +337,60 @@ class StatisticalController extends Controller
             "customers" => $customers,
             "products" => $products,
             "data" => $data,
+        ];
+        return response()->json($response, 200);
+    }
+    public function payRequest(Request $request)
+    {
+        $target = Target::select(
+            DB::raw("DISTINCT DATE_FORMAT(from_date, '%m-%Y') as month"),
+            DB::raw("SUM(target) as target")
+        )
+            ->groupBy('month')->get();
+        $target_purchase = TargetPurchase::select(
+            DB::raw("DISTINCT DATE_FORMAT(date, '%m-%Y') as month"),
+            DB::raw("SUM(target) as target_purchase")
+        )
+            ->groupBy('month')->get();
+        $target_purchase_reach = Purchase::join('purchase_items', 'purchase_items.purchases_id', 'purchases.id')
+            ->select(
+                DB::raw("DISTINCT DATE_FORMAT(purchases.date, '%m-%Y') as month"),
+                DB::raw("SUM(quality*price) as target_purchase_reach")
+            )
+            ->groupBy('month')->get();
+        $target_reach = Sales::join('sales_items', 'sales_items.sales_id', 'sales.id')
+            ->select(
+                DB::raw("DISTINCT DATE_FORMAT(sales.date, '%m-%Y') as month"),
+                DB::raw("SUM(quality*price) as target_reach")
+            )
+            ->groupBy('month')->get();
+        $paid = Paid::select(
+            DB::raw("DISTINCT DATE_FORMAT(paids.date, '%m-%Y') as month"),
+            DB::raw("SUM(money) as tranfer")
+        )
+            ->groupBy('month')->get();
+        $debt = Sales::join('staff', 'sales.staff_id', 'staff.id')
+            ->select(
+                DB::raw("DISTINCT DATE_FORMAT(sales.date, '%m-%Y') as month"),
+                DB::raw("SUM(staff.debt) as debt")
+            )
+            ->groupBy('month')->get();
+        $mergedCollection = $target->concat($target_purchase)
+            ->concat($target_purchase_reach)
+            ->concat($target_reach)
+            ->concat($paid)
+            ->concat($debt)
+            ->groupBy('month')
+            ->map(function ($items) {
+                $mergedData = array_merge(...$items->toArray());
+                $mergedData['purchase_reach_percent'] = number_format($mergedData['target_purchase_reach'] / $mergedData['target_purchase'] * 100, 0);
+                $mergedData['commission'] = $mergedData['purchase_reach_percent'] >= 100 ? $mergedData['target_purchase_reach'] * 0.05 : $mergedData['target_purchase_reach'] * 0.03;
+                $mergedData['debt'] = -$mergedData['debt'];
+                $mergedData['total'] = $mergedData['debt'] + $mergedData['commission'] + $mergedData['tranfer'];
+                return $mergedData;
+            });
+        $response = [
+            'data' => $mergedCollection->values()->all(),
         ];
         return response()->json($response, 200);
     }

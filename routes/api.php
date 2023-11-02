@@ -138,6 +138,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::post('/guarantee-product', [StatisticalController::class, 'guaranteeProduct']);
         Route::get('/real-sales', [StatisticalController::class, 'realSales']);
         Route::post('/real-sales', [StatisticalController::class, 'realSales']);
+        Route::get('/pay-request', [StatisticalController::class, 'payRequest']);
     });
     Route::group(['prefix' => 'target'], function () {
         Route::get('/target-purchase', [TargetPurchaseController::class, 'index']);
