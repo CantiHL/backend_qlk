@@ -66,19 +66,22 @@ class StatisticalController extends Controller
             $da->allPrice = $da->quantity * $da->price;
             if ($da->commission_type > 0) {
                 $temp = $da->quantity / $da->commission_type;
-                $da->bonus = $da->commission * $temp;
-                $da->salary = $da->bonus;
+                $da->salary = $da->commission * $temp;
+                $da->bonus = $da->commission . '/' . $da->commission_type;
             } else {
-                $da->bonus = $da->commission * 0.01;
-                $da->salary = $da->allPrice * $da->bonus;
+                $da->salary = $da->allPrice * $da->commission * 0.01;
+                $da->bonus = $da->commission;
             }
+
             $totalSalary += $da->salary;
         }
-
+        $modifiedData = $data->map(function ($item) {
+            return collect($item)->forget('commission')->forget('commission_type')->all();
+        });
         $response = [
             "staffs" => $staffs,
             "productGroups" => $productGroups,
-            "data" => $data,
+            "data" => $modifiedData,
             "totalSalary" => $totalSalary,
         ];
         return response()->json($response, 200);
