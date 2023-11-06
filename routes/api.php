@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\StatisticalController;
 use App\Http\Controllers\Admin\TargetController;
+use App\Http\Controllers\Admin\Warehouse_TransferController;
 use App\Http\Controllers\Admin\WareHouseController;
 use App\Http\Controllers\Admin\TargetPurchaseController;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +58,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('/edit/{id}', [WareHouseController::class, 'edit']);
         Route::put('/update/{id}', [WareHouseController::class, 'update']);
         Route::delete('/delete/{id}', [WareHouseController::class, 'destroy']);
+        Route::post('/transfer-products', [Warehouse_TransferController::class, 'warehouseTransferProduct']);
     });
     Route::group(['prefix' => 'discount'], function () {
         Route::get('/list', [DiscountController::class, 'index']);

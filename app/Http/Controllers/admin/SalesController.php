@@ -318,6 +318,7 @@ class SalesController extends Controller
      */
     public function store(Request $request)
     {
+        // dd($request->sales);
 
         $request->validate([
             'sales_item.*.product_id' => 'required',
@@ -361,28 +362,48 @@ class SalesController extends Controller
             $sales = Sales::create($data);
             $sales->save();
             $sales_id = $sales->id;
-            // create Sales_item
-            foreach ($request->sales_item as $item) {
-                $sales_item = new Sales_item([
-                    'sales_id' => $sales_id,
-                    'product_id' => $item["product_id"],
-                    'quality' => $item["quality"],
-                    'get_more' => $item["get_more"],
-                    'discount' => $item["discount"],
-                    'guarantee' => $item["guarantee"],
-                    'price' => $item["price"],
-                ]);
-                $sales_item->save();
-                // giảm số lượng của nhập hàng nếu cần
-                // $purchase_item = Purchase_item::where('product_id', $item["product_id"])->first();
-                // $purchase_item->quality -= $item["quality"];
-                // $purchase_item->save();
+            $customer = Customer::find($request->sales["customer_id"]);
+            if ($request->sales["status"] == 0) {
+                // create Sales_item
+                foreach ($request->sales_item as $item) {
+                    $sales_item = new Sales_item([
+                        'sales_id' => $sales_id,
+                        'product_id' => $item["product_id"],
+                        'quality' => $item["quality"],
+                        'get_more' => $item["get_more"],
+                        'discount' => $item["discount"],
+                        'guarantee' => $item["guarantee"],
+                        'price' => $item["price"],
+                    ]);
+                    $sales_item->save();
+                    //update debt customer
+                    $customer->debt = $customer->debt + (($item["price"] * $item["quality"] - $item["price"] * $item["quality"] * $item["discount"] * 0.01) - ($item["price"] * $item["quality"] * $item["get_more"] * 0.01));
+                    $customer->save();
+                }
+            } else {
+                foreach ($request->sales_item as $item) {
+                    $sales_item = new Sales_item([
+                        'sales_id' => $sales_id,
+                        'product_id' => $item["product_id"],
+                        'quality' => $item["quality"],
+                        'get_more' => $item["get_more"],
+                        'discount' => $item["discount"],
+                        'guarantee' => $item["guarantee"],
+                        'price' => $item["price"],
+                    ]);
+                    $sales_item->save();
+                }
             }
+            // giảm số lượng của nhập hàng nếu cần
+            // $purchase_item = Purchase_item::where('product_id', $item["product_id"])->first();
+            // $purchase_item->quality -= $item["quality"];
+            // $purchase_item->save();
             return response()->json(['create successful', 201]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Create failed', 'error' => $e->getMessage()], 401);
         }
     }
+
 
     /**
      * Display the specified resource.

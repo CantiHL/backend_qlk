@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Paid;
+use App\Models\Sales;
 use Illuminate\Http\Request;
 
 class PaidController extends Controller
@@ -42,6 +44,10 @@ class PaidController extends Controller
             'money' => 'required',
         ]);
         $existingPaid = Paid::where('sales_id', $validatedData['sales_id'])->first();
+        $sale = Sales::find($validatedData['sales_id']);
+        $customer = Customer::find($sale->customer_id);
+        $customer->debt -= $validatedData['money'];
+        $customer->save();
         if ($existingPaid) {
             $existingPaid->money += $validatedData['money'];
             $existingPaid->save();
