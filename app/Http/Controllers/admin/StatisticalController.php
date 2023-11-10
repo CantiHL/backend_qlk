@@ -145,8 +145,8 @@ class StatisticalController extends Controller
     {
         $staffs = Staff::select('id', 'fullname')->get();
         $customers = Customer::select('id', 'fullname')->get();
-        $products = Products::select('id', 'fullname')->get();
-        $product_groups = Product_Group::select('id', 'fullname')->get();
+        $products = Products::select('id', 'name')->get();
+        $product_groups = Product_Group::select('id', 'group_name')->get();
         $from_date = $request->from_date;
         $to_date = $request->to_date;
         $product_group_id = $request->product_group_id;
