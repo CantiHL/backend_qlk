@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Sales;
 use App\Models\Staff;
+use DB;
 use Illuminate\Http\Request;
 
 
@@ -167,5 +169,24 @@ class StaffController extends Controller
         } else {
             return response()->json(['message' => 'faild'], 401);
         }
+    }
+    public function report($id)
+    {
+        $data = Sales::join('sales_items', 'sales_items.sales_id', 'sales.id')
+            ->join('products', 'sales_items.product_id', 'products.id')
+            ->where('sales.trash', 0)
+            ->where('sales.staff_id', $id)
+            ->select(
+                'products.code as code',
+                'sales_items.quality as quantity',
+                'sales_items.get_more as get_more',
+                'sales_items.discount as discount',
+                'sales_items.price as price',
+                DB::raw('sales_items.price*sales_items.quality-sales_items.price*sales_items.quality*sales_items.get_more*0.01-sales_items.price*sales_items.quality*sales_items.discount*0.01 as total_price'),
+            )
+            ->get();
+        return response()->json([
+            'data' => $data
+        ], 200);
     }
 }

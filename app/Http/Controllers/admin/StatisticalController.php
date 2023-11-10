@@ -144,6 +144,9 @@ class StatisticalController extends Controller
     public function realSales(Request $request)
     {
         $staffs = Staff::select('id', 'fullname')->get();
+        $customers = Customer::select('id', 'fullname')->get();
+        $products = Products::select('id', 'fullname')->get();
+        $product_groups = Product_Group::select('id', 'fullname')->get();
         $from_date = $request->from_date;
         $to_date = $request->to_date;
         $product_group_id = $request->product_group_id;
@@ -209,6 +212,9 @@ class StatisticalController extends Controller
         }
         $response = [
             "staffs" => $staffs,
+            'customers' => $customers,
+            'products' => $products,
+            'product_groups' => $product_groups,
             "data" => $data,
             "salesWithBN" => $salesWithBN,
             "salesWithoutBN" => $salesWithoutBN,

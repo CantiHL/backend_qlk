@@ -79,6 +79,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('/get/debt/{id}', [StaffController::class, 'get_debt']);
         Route::put('/update/debt/{id}', [StaffController::class, 'update_debt']);
         Route::put('/update/status/{id}', [StaffController::class, 'update_status']);
+        Route::get('/report/{id}', [StaffController::class, 'report']);
     });
 
     Route::group(['prefix' => 'location'], function () {
