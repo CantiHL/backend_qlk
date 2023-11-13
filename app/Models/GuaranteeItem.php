@@ -8,4 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class GuaranteeItem extends Model
 {
     use HasFactory;
+    protected $fillable = ['sale_id', 'product_id', 'quantity'];
 }

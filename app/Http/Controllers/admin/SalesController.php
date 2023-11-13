@@ -380,12 +380,11 @@ class SalesController extends Controller
                     //update debt customer
                     $customer->debt = $customer->debt + (($item["price"] * $item["quality"] - $item["price"] * $item["quality"] * $item["discount"] * 0.01) - ($item["price"] * $item["quality"] * $item["get_more"] * 0.01));
                     $customer->save();
-
                     if ($sales_item->guarantee > 0) {
                         GuaranteeItem::create([
                             'sale_id' => $sales_id,
                             'product_id' => $item["product_id"],
-                            'quality' => $item["quality"],
+                            'quantity' => $item["guarantee"],
                         ]);
                     }
                 }
@@ -405,7 +404,7 @@ class SalesController extends Controller
                         GuaranteeItem::create([
                             'sale_id' => $sales_id,
                             'product_id' => $item["product_id"],
-                            'quality' => $item["quality"],
+                            'quantity' => $item["guarantee"],
                         ]);
                     }
                 }
