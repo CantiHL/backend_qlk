@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Imports\ImportFileExcel;
 use App\Models\Customer;
+use App\Models\GuaranteeItem;
 use App\Models\Products;
 use App\Models\Purchase_item;
 use App\Models\Sales;
@@ -379,6 +380,14 @@ class SalesController extends Controller
                     //update debt customer
                     $customer->debt = $customer->debt + (($item["price"] * $item["quality"] - $item["price"] * $item["quality"] * $item["discount"] * 0.01) - ($item["price"] * $item["quality"] * $item["get_more"] * 0.01));
                     $customer->save();
+
+                    if ($sales_item->guarantee > 0) {
+                        GuaranteeItem::create([
+                            'sale_id' => $sales_id,
+                            'product_id' => $item["product_id"],
+                            'quality' => $item["quality"],
+                        ]);
+                    }
                 }
             } else {
                 foreach ($request->sales_item as $item) {
@@ -392,6 +401,13 @@ class SalesController extends Controller
                         'price' => $item["price"],
                     ]);
                     $sales_item->save();
+                    if ($sales_item->guarantee > 0) {
+                        GuaranteeItem::create([
+                            'sale_id' => $sales_id,
+                            'product_id' => $item["product_id"],
+                            'quality' => $item["quality"],
+                        ]);
+                    }
                 }
             }
             // giảm số lượng của nhập hàng nếu cần

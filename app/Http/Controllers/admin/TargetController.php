@@ -40,7 +40,7 @@ class TargetController extends Controller
             'from_date' => 'required|date',
             'to_date' => 'required|date',
         ]);
-        $target = Target::create([
+        Target::create([
             'staff_id' => $request->staff_id,
             'group_product_id' => $request->group_product_id,
             'target' => $request->target,

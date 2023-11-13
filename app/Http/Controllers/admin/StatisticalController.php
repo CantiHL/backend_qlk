@@ -44,11 +44,32 @@ class StatisticalController extends Controller
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $to_date)->format('Y-m-d');
                 $query->whereDate('sales.date', '<=', $formatted_date);
             })
-            ->when($product_group_id, function (Builder $query, int $product_group_id) {
-                $query->where('product_groups.id', $product_group_id);
+            ->when($product_group_id, function (Builder $query, $product_group_id) {
+                if (is_array($product_group_id)) {
+                    $query->where(function ($query) use ($product_group_id) {
+                        foreach ($product_group_id as $id) {
+                            if ($id) {
+                                $query->orWhere('product_groups.id', $id);
+                            }
+                        }
+                    });
+                } else {
+                    $query->where('product_groups.id', $product_group_id);
+
+                }
             })
-            ->when($staff_id, function (Builder $query, int $staff_id) {
-                $query->where('staff.id', $staff_id);
+            ->when($staff_id, function (Builder $query, $staff_id) {
+                if (is_array($staff_id)) {
+                    $query->where(function ($query) use ($staff_id) {
+                        foreach ($staff_id as $id) {
+                            if ($id) {
+                                $query->orWhere('staff.id', $id);
+                            }
+                        }
+                    });
+                } else {
+                    $query->where('staff.id', $staff_id);
+                }
             })
             ->select(
                 DB::raw("DISTINCT DATE_FORMAT(sales.date,'%d-%m-%Y') as sale_date"),
@@ -92,6 +113,7 @@ class StatisticalController extends Controller
         $from_date = $request->from_date;
         $to_date = $request->to_date;
         $staff_id = $request->staff_id;
+        // dd($staff_id);
         $data = Sales::join("staff", "sales.staff_id", "staff.id")
             ->join("customers", "sales.customer_id", "customers.id")
             ->join("sales_items", "sales_items.sales_id", "sales.id")
@@ -106,13 +128,24 @@ class StatisticalController extends Controller
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $to_date)->format('Y-m-d');
                 $query->whereDate('sales.date', '<=', $formatted_date);
             })
-            ->when($staff_id, function (Builder $query, int $staff_id) {
-                $query->where('staff.id', $staff_id);
+            ->when($staff_id, function (Builder $query, $staff_id) {
+                if (is_array($staff_id)) {
+                    $query->where(function ($query) use ($staff_id) {
+                        foreach ($staff_id as $id) {
+                            if ($id) {
+                                $query->orWhere('staff.id', $id);
+                            }
+                        }
+                    });
+                } else {
+                    $query->where('staff.id', $staff_id);
+                }
+
             })
             ->select(
                 DB::raw("DISTINCT DATE_FORMAT(sales.date,'%d-%m-%Y') as sale_date,
-                DATE_FORMAT(discounts.from_date,'%d-%m-%Y') as from_date,
-                DATE_FORMAT(discounts.to_date,'%d-%m-%Y') as to_date
+                DATE_FORMAT(discounts.from_date,'%d-%m-%Y') as dcfrom_date,
+                DATE_FORMAT(discounts.to_date,'%d-%m-%Y') as dcto_date
                 "),
                 "staff.fullname as staff",
                 "customers.fullname as customer",
@@ -126,7 +159,7 @@ class StatisticalController extends Controller
             ->get();
         $totalDisparity = 0;
         foreach ($data as $da) {
-            if (strtotime($da->sale_date) <= strtotime($da->from_date) || strtotime($da->sale_date) >= strtotime($da->to_date)) {
+            if (strtotime($da->sale_date) <= strtotime($da->dcfrom_date) || strtotime($da->sale_date) >= strtotime($da->dcto_date)) {
                 $da->cpn_discount = 0;
             }
             $da->cpn_discount_price = $da->buy_price * $da->quantity - $da->buy_price * $da->quantity * $da->cpn_discount * 0.01;
@@ -143,10 +176,10 @@ class StatisticalController extends Controller
     }
     public function realSales(Request $request)
     {
-        $staffs = Staff::select('id', 'fullname')->get();
         $customers = Customer::select('id', 'fullname')->get();
         $products = Products::select('id', 'name')->get();
         $product_groups = Product_Group::select('id', 'group_name')->get();
+        $staffs = Staff::select('id', 'fullname')->get();
         $from_date = $request->from_date;
         $to_date = $request->to_date;
         $product_group_id = $request->product_group_id;
@@ -167,16 +200,37 @@ class StatisticalController extends Controller
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $to_date)->format('Y-m-d');
                 $query->whereDate('sales.date', '<=', $formatted_date);
             })
-            ->when($product_group_id, function (Builder $query, int $product_group_id) {
-                $query->where('product_groups.id', $product_group_id);
+            ->when($product_group_id, function (Builder $query, $product_group_id) {
+                if (is_array($product_group_id)) {
+                    $query->where(function ($query) use ($product_group_id) {
+                        foreach ($product_group_id as $id) {
+                            if ($id) {
+                                $query->orWhere('product_groups.id', $id);
+                            }
+                        }
+                    });
+                } else {
+                    $query->where('product_groups.id', $product_group_id);
+
+                }
             })
-            ->when($staff_id, function (Builder $query, int $staff_id) {
-                $query->where('staff.id', $staff_id);
+            ->when($staff_id, function (Builder $query, $staff_id) {
+                if (is_array($staff_id)) {
+                    $query->where(function ($query) use ($staff_id) {
+                        foreach ($staff_id as $id) {
+                            if ($id) {
+                                $query->orWhere('staff.id', $id);
+                            }
+                        }
+                    });
+                } else {
+                    $query->where('staff.id', $staff_id);
+                }
             })
-            ->when($customer_id, function (Builder $query, int $customer_id) {
+            ->when($customer_id, function (Builder $query, $customer_id) {
                 $query->where('customers.id', $customer_id);
             })
-            ->when($product_id, function (Builder $query, int $product_id) {
+            ->when($product_id, function (Builder $query, $product_id) {
                 $query->where('products.id', $product_id);
             })
             ->select(
@@ -231,14 +285,34 @@ class StatisticalController extends Controller
         $productGroup = Product_Group::select('id', 'group_name')->get();
         $product_group_id = $request->product_group_id;
         $product_id = $request->product_id;
+        $from_date = $request->from_date;
+        $to_date = $request->to_date;
         $data = Purchase_item::join('purchases', 'purchase_items.purchases_id', 'purchases.id')
             ->join('products', 'purchase_items.product_id', 'products.id')
             ->join('product_groups', 'products.group', 'product_groups.id')
             ->where('purchases.trash', 0)
-            ->when($product_group_id, function (Builder $query, int $product_group_id) {
-                $query->where('product_groups.id', $product_group_id);
+            ->when($from_date, function (Builder $query, $from_date) {
+                $formatted_date = Carbon::createFromFormat('d-m-Y', $from_date)->format('Y-m-d');
+                $query->whereDate('purchases.date', '>=', $formatted_date);
             })
-            ->when($product_id, function (Builder $query, int $product_id) {
+            ->when($to_date, function (Builder $query, $to_date) {
+                $formatted_date = Carbon::createFromFormat('d-m-Y', $to_date)->format('Y-m-d');
+                $query->whereDate('purchases.date', '<=', $formatted_date);
+            })
+            ->when($product_group_id, function (Builder $query, $product_group_id) {
+                if (is_array($product_group_id)) {
+                    $query->where(function ($query) use ($product_group_id) {
+                        foreach ($product_group_id as $id) {
+                            if ($id) {
+                                $query->orWhere('product_groups.id', $id);
+                            }
+                        }
+                    });
+                } else {
+                    $query->where('product_groups.id', $product_group_id);
+                }
+            })
+            ->when($product_id, function (Builder $query, $product_id) {
                 $query->where('products.id', $product_id);
             })
             ->select(
@@ -319,17 +393,37 @@ class StatisticalController extends Controller
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $to_date)->format('Y-m-d');
                 $query->whereDate('sales.date', '<=', $formatted_date);
             })
-            ->when($customer_id, function (Builder $query, int $customer_id) {
+            ->when($customer_id, function (Builder $query, $customer_id) {
                 $query->where('customers.id', $customer_id);
             })
-            ->when($product_id, function (Builder $query, int $product_id) {
+            ->when($product_id, function (Builder $query, $product_id) {
                 $query->where('products.id', $product_id);
             })
-            ->when($product_group_id, function (Builder $query, int $product_group_id) {
-                $query->where('product_groups.id', $product_group_id);
+            ->when($product_group_id, function (Builder $query, $product_group_id) {
+                if (is_array($product_group_id)) {
+                    $query->where(function ($query) use ($product_group_id) {
+                        foreach ($product_group_id as $id) {
+                            if ($id) {
+                                $query->orWhere('product_groups.id', $id);
+                            }
+                        }
+                    });
+                } else {
+                    $query->where('product_groups.id', $product_group_id);
+                }
             })
-            ->when($staff_id, function (Builder $query, int $staff_id) {
-                $query->where('staff.id', $staff_id);
+            ->when($staff_id, function (Builder $query, $staff_id) {
+                if (is_array($staff_id)) {
+                    $query->where(function ($query) use ($staff_id) {
+                        foreach ($staff_id as $id) {
+                            if ($id) {
+                                $query->orWhere('staff.id', $id);
+                            }
+                        }
+                    });
+                } else {
+                    $query->where('staff.id', $staff_id);
+                }
             })
             ->select(
                 DB::raw("DISTINCT DATE_FORMAT(sales.date,'%d-%m-%Y') as date"),
