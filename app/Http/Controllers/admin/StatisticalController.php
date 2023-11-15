@@ -81,6 +81,7 @@ class StatisticalController extends Controller
                 "sales_items.quality as quantity",
                 "sales_items.price as price",
             )
+            ->orderBy('sales_items.id', 'desc')
             ->get();
         $totalSalary = 0;
         foreach ($data as $da) {
@@ -156,6 +157,7 @@ class StatisticalController extends Controller
                 "discounts.discount as cpn_discount",
                 "sales_items.discount as real_discount",
             )
+            ->orderBy('sales.id', 'desc')
             ->get();
         $totalDisparity = 0;
         foreach ($data as $da) {
@@ -244,6 +246,7 @@ class StatisticalController extends Controller
                 "sales_items.discount as discount",
                 "sales_items.price as final_price",
             )
+            ->orderBy('sales.id', 'desc')
             ->get();
         $totalTarget = Target::sum('target');
         $salesWithoutBN = 0;
@@ -332,6 +335,7 @@ class StatisticalController extends Controller
                 'purchase_items.discount',
                 'product_groups.id',
             )
+            ->orderBy('purchase_items.id', 'desc')
             ->get();
         $target = TargetPurchase::join('purchases', 'target_purchases.date', 'purchases.date')
             ->where('purchases.trash', 0)
@@ -433,6 +437,7 @@ class StatisticalController extends Controller
                 "products.code as code",
                 "sales_items.quality as quantity",
             )
+            ->orderBy('sales_items.id', 'desc')
             ->get();
         $response = [
             "staffs" => $staffs,
@@ -477,7 +482,8 @@ class StatisticalController extends Controller
                 DB::raw("DISTINCT DATE_FORMAT(sales.date, '%m-%Y') as month"),
                 DB::raw("SUM(staff.debt) as debt")
             )
-            ->groupBy('month')->get();
+            ->groupBy('month')
+            ->get();
         $mergedCollection = $target->concat($target_purchase)
             ->concat($target_purchase_reach)
             ->concat($target_reach)

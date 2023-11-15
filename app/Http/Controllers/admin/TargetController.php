@@ -25,7 +25,7 @@ class TargetController extends Controller
                 $formatted_date = Carbon::createFromFormat('d-m-Y', $to_date)->format('Y-m-d');
                 $query->whereDate('to_date', '<=', $formatted_date);
             })
-            ->select('id', 'staff_id', 'group_product_id', 'target', 'from_date', 'to_date')->get();
+            ->select('id', 'staff_id', 'group_product_id', 'target', 'from_date', 'to_date')->orderBy('id', 'desc')->get();
         $res = [
             'data' => $data,
         ];

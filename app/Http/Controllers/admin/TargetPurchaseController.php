@@ -16,7 +16,7 @@ class TargetPurchaseController extends Controller
      */
     public function index(Request $request)
     {
-        $data = TargetPurchase::select('id', 'date', 'target')->get();
+        $data = TargetPurchase::select('id', 'date', 'target')->orderBy('id', 'desc')->get();
         $res = [
             'data' => $data,
         ];
