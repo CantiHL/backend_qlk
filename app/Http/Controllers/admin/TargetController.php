@@ -15,6 +15,8 @@ class TargetController extends Controller
 {
     public function index(Request $request)
     {
+        $staff = Staff::select('id', 'fullname')->get();
+        $product_group = Product_Group::select('id', 'name')->get();
         $from_date = $request->from_date;
         $to_date = $request->to_date;
         $data = Target::when($from_date, function (Builder $query, $from_date) {
@@ -27,12 +29,15 @@ class TargetController extends Controller
             })
             ->select('id', 'staff_id', 'group_product_id', 'target', 'from_date', 'to_date')->orderBy('id', 'desc')->get();
         $res = [
+            'staff' => $staff,
+            'product_group' => $product_group,
             'data' => $data,
         ];
         return response()->json($res, 200);
     }
     public function create(Request $request)
     {
+
         $request->validate([
             'staff_id' => 'required|integer',
             'group_product_id' => 'required|integer',
